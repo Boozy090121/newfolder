@@ -60,131 +60,160 @@ export interface DashboardData {
   };
 }
 
-// Create a hook that returns mock data
+// Create pre-generated static mock data
+const MOCK_DATA: DashboardData = createStaticMockData();
+
+// Hook to access the static data
 export function useDataService() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        
-        try {
-          // First try to load real data with SafeJSON parsing
-          const response = await fetch('dashboard_data.json');
-          if (!response.ok) {
-            throw new Error(`Failed to load dashboard_data.json: ${response.status}`);
-          }
-          
-          // Read text first so we can process it before parsing
-          const jsonText = await response.text();
-          
-          // Process JSON text to replace problematic property names before parsing
-          const sanitizedJson = jsonText
-            .replace(/"wo\/lot#"/g, '"woLotNumber"')
-            .replace(/"total_cycle_time_\(days\)"/g, '"totalCycleTimeDays"');
-          
-          // Now parse the sanitized JSON
-          const rawData = JSON.parse(sanitizedJson);
-          console.log('Loaded and sanitized real data');
-          
-          // Process the data or fall back to mock data if processing fails
-          try {
-            // TODO: Real data processing would go here if needed
-            // For now, we'll just use the mock data
-            const mockData = generateMockData();
-            setData(mockData);
-          } catch (processError) {
-            console.warn('Error processing data, falling back to mock data');
-            const mockData = generateMockData();
-            setData(mockData);
-          }
-        } catch (loadError) {
-          console.warn('Error loading data, using mock data:', loadError);
-          // Fall back to mock data generation
-          const mockData = generateMockData();
-          setData(mockData);
-        }
-        
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error in data loading process:', err);
-        setError('Failed to load dashboard data');
-        setIsLoading(false);
-        
-        // Always provide data even if there's an error
-        const mockData = generateMockData();
-        setData(mockData);
-      }
-    }
+    // Simply return the static data with a small delay to simulate loading
+    const timer = setTimeout(() => {
+      setData(MOCK_DATA);
+      setIsLoading(false);
+    }, 500);
     
-    loadData();
+    return () => clearTimeout(timer);
   }, []);
 
   return { data, isLoading, error };
 }
 
-// Generate complete mock data set
-function generateMockData(): DashboardData {
+// Create static mock data
+function createStaticMockData(): DashboardData {
   // Create mock lots
   const lots: Record<string, LotData> = {};
   
-  // Create 10 sample lots
-  const statuses: ('In Progress' | 'Complete' | 'On Hold' | 'At Risk')[] = ['In Progress', 'Complete', 'On Hold', 'At Risk'];
-  const strengths = [0.25, 0.5, 1.0, 1.7, 2.4];
-  const errorTypes = ['Label Error', 'Assembly Error', 'Cartoning Error', 'Documentation Error', 'Validation Error'];
+  // Add 6 sample lots with different statuses
+  lots['NAR0001'] = {
+    id: 'NAR0001',
+    number: 'NAR0001',
+    product: 'WEGOVY 2.4MG 4 PREF PENS',
+    customer: 'NOVO NORDISK',
+    startDate: '2023-12-01',
+    dueDate: '2024-01-15',
+    status: 'Complete',
+    rftRate: 95.2,
+    trend: [91, 92, 93, 94, 95, 95.2, 95.2],
+    errors: 0,
+    cycleTime: 18,
+    cycleTimeTarget: 21,
+    hasErrors: false,
+    errorTypes: [],
+    bulkBatch: 'NAT0235',
+    strength: 2.4
+  };
   
-  for (let i = 1; i <= 10; i++) {
-    const lotNumber = `NAR${String(i).padStart(4, '0')}`;
-    const strength = strengths[Math.floor(Math.random() * strengths.length)];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const rftRate = 80 + Math.random() * 20;
-    const errors = status === 'At Risk' ? 5 + Math.floor(Math.random() * 5) : Math.floor(Math.random() * 3);
-    
-    // Generate start and due dates
-    const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - Math.floor(Math.random() * 60)); // Random start in last 60 days
-    
-    const dueDate = new Date(startDate);
-    dueDate.setDate(startDate.getDate() + 30 + Math.floor(Math.random() * 30)); // Due date 30-60 days after start
-    
-    lots[lotNumber] = {
-      id: lotNumber,
-      number: lotNumber,
-      product: `WEGOVY ${strength}MG 4 PREF PENS`,
-      customer: 'NOVO NORDISK',
-      startDate: startDate.toISOString().split('T')[0],
-      dueDate: dueDate.toISOString().split('T')[0],
-      status,
-      rftRate,
-      trend: Array(7).fill(0).map(() => 80 + Math.random() * 20),
-      errors,
-      cycleTime: 14 + Math.floor(Math.random() * 14),
-      cycleTimeTarget: 21,
-      hasErrors: errors > 0,
-      errorTypes: errors > 0 ? 
-        Array(errors).fill(0).map(() => errorTypes[Math.floor(Math.random() * errorTypes.length)]) : 
-        [],
-      bulkBatch: `NAT${String(1000 + i).padStart(4, '0')}`,
-      strength
-    };
-  }
+  lots['NAR0002'] = {
+    id: 'NAR0002',
+    number: 'NAR0002',
+    product: 'WEGOVY 1.7MG 4 PREF PENS',
+    customer: 'NOVO NORDISK',
+    startDate: '2023-12-15',
+    dueDate: '2024-01-30',
+    status: 'In Progress',
+    rftRate: 92.1,
+    trend: [90, 91, 91.5, 92, 92.1, 92.1, 92.1],
+    errors: 2,
+    cycleTime: 21,
+    cycleTimeTarget: 21,
+    hasErrors: true,
+    errorTypes: ['Label Error', 'Documentation Error'],
+    bulkBatch: 'NAT0235',
+    strength: 1.7
+  };
+  
+  lots['NAR0003'] = {
+    id: 'NAR0003',
+    number: 'NAR0003',
+    product: 'WEGOVY 1.0MG 4 PREF PENS',
+    customer: 'NOVO NORDISK',
+    startDate: '2023-12-20',
+    dueDate: '2024-02-05',
+    status: 'At Risk',
+    rftRate: 80.5,
+    trend: [85, 83, 82, 81, 80, 80.5, 80.5],
+    errors: 6,
+    cycleTime: 25,
+    cycleTimeTarget: 21,
+    hasErrors: true,
+    errorTypes: ['Assembly Error', 'Label Error', 'Validation Error'],
+    bulkBatch: 'NAT0235',
+    strength: 1.0
+  };
+  
+  lots['NAR0004'] = {
+    id: 'NAR0004',
+    number: 'NAR0004',
+    product: 'WEGOVY 0.5MG 4 PREF PENS',
+    customer: 'NOVO NORDISK',
+    startDate: '2023-12-25',
+    dueDate: '2024-02-10',
+    status: 'On Hold',
+    rftRate: 88.3,
+    trend: [88, 87, 87.5, 88, 88.3, 88.3, 88.3],
+    errors: 3,
+    cycleTime: 23,
+    cycleTimeTarget: 21,
+    hasErrors: true,
+    errorTypes: ['Documentation Error'],
+    bulkBatch: 'NAT0236',
+    strength: 0.5
+  };
+  
+  lots['NAR0005'] = {
+    id: 'NAR0005',
+    number: 'NAR0005',
+    product: 'WEGOVY 0.25MG 4 PREF PENS',
+    customer: 'NOVO NORDISK',
+    startDate: '2024-01-05',
+    dueDate: '2024-02-20',
+    status: 'In Progress',
+    rftRate: 91.8,
+    trend: [91, 91.2, 91.5, 91.8, 91.8, 91.8, 91.8],
+    errors: 1,
+    cycleTime: 19,
+    cycleTimeTarget: 21,
+    hasErrors: true,
+    errorTypes: ['Assembly Error'],
+    bulkBatch: 'NAT0236',
+    strength: 0.25
+  };
+  
+  lots['NAR0006'] = {
+    id: 'NAR0006',
+    number: 'NAR0006',
+    product: 'WEGOVY 2.4MG 4 PREF PENS',
+    customer: 'NOVO NORDISK',
+    startDate: '2024-01-10',
+    dueDate: '2024-02-25',
+    status: 'In Progress',
+    rftRate: 94.0,
+    trend: [92, 93, 93.5, 94, 94, 94, 94],
+    errors: 0,
+    cycleTime: 17,
+    cycleTimeTarget: 21,
+    hasErrors: false,
+    errorTypes: [],
+    bulkBatch: 'NAT0236',
+    strength: 2.4
+  };
   
   // Create RFT trend data
   const rftTrend: RftData[] = [];
   const today = new Date();
   
   for (let i = 29; i >= 0; i--) {
-    const date = new Date(today);
+    const date = new Date();
     date.setDate(today.getDate() - i);
     
     // Create slightly random but upward trend
-    const dayFactor = 1 - (i / 30); // Higher for more recent days
-    const baseline = 85 + (dayFactor * 10); // Starting at 85% and trending up to 95%
-    const randomFactor = Math.random() * 3; // Add some randomness
+    const dayFactor = 1 - (i / 30); 
+    const baseline = 85 + (dayFactor * 10); 
+    const randomFactor = Math.random() * 3;
     
     rftTrend.push({
       date: date.toISOString().split('T')[0],
@@ -195,112 +224,87 @@ function generateMockData(): DashboardData {
   }
   
   // Create timeline events
-  const timelineEvents: TimelineEvent[] = [];
-  const eventTypes = ['Bulk Receipt', 'Assembly Start', 'Assembly Finish', 'Packaging Start', 'Packaging Finish', 'Release', 'Shipment'];
-  
-  Object.values(lots).forEach(lot => {
-    // Generate random events for this lot
-    const startDateObj = new Date(lot.startDate);
-    const dueDateObj = new Date(lot.dueDate);
+  const timelineEvents: TimelineEvent[] = [
+    { lot: 'NAR0001', event: 'Bulk Receipt', date: '2023-12-01', status: 'complete' },
+    { lot: 'NAR0001', event: 'Assembly Start', date: '2023-12-05', status: 'complete' },
+    { lot: 'NAR0001', event: 'Assembly Finish', date: '2023-12-10', status: 'complete' },
+    { lot: 'NAR0001', event: 'Packaging Start', date: '2023-12-15', status: 'complete' },
+    { lot: 'NAR0001', event: 'Packaging Finish', date: '2023-12-20', status: 'complete' },
+    { lot: 'NAR0001', event: 'Release', date: '2024-01-10', status: 'complete' },
+    { lot: 'NAR0001', event: 'Shipment', date: '2024-01-15', status: 'complete' },
     
-    // Calculate total days between start and due date
-    const totalDays = (dueDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24);
+    { lot: 'NAR0002', event: 'Bulk Receipt', date: '2023-12-15', status: 'complete' },
+    { lot: 'NAR0002', event: 'Assembly Start', date: '2023-12-20', status: 'complete' },
+    { lot: 'NAR0002', event: 'Assembly Finish', date: '2023-12-27', status: 'complete' },
+    { lot: 'NAR0002', event: 'Error Reported', date: '2023-12-22', status: 'error' },
+    { lot: 'NAR0002', event: 'Error Reported', date: '2023-12-25', status: 'error' },
+    { lot: 'NAR0002', event: 'Packaging Start', date: '2024-01-05', status: 'complete' },
     
-    // Determine how many events to create based on status
-    let eventCount = 0;
-    if (lot.status === 'Complete') {
-      eventCount = eventTypes.length;
-    } else if (lot.status === 'In Progress') {
-      eventCount = 2 + Math.floor(Math.random() * 3); // 2-4 events
-    } else if (lot.status === 'On Hold') {
-      eventCount = 1 + Math.floor(Math.random() * 3); // 1-3 events
-    } else if (lot.status === 'At Risk') {
-      eventCount = 2 + Math.floor(Math.random() * 2); // 2-3 events
-    }
+    { lot: 'NAR0003', event: 'Bulk Receipt', date: '2023-12-20', status: 'complete' },
+    { lot: 'NAR0003', event: 'Assembly Start', date: '2023-12-28', status: 'complete' },
+    { lot: 'NAR0003', event: 'Error Reported', date: '2023-12-29', status: 'error' },
+    { lot: 'NAR0003', event: 'Error Reported', date: '2023-12-30', status: 'error' },
+    { lot: 'NAR0003', event: 'Error Reported', date: '2024-01-02', status: 'error' },
+    { lot: 'NAR0003', event: 'Error Reported', date: '2024-01-05', status: 'error' },
+    { lot: 'NAR0003', event: 'Error Reported', date: '2024-01-08', status: 'error' },
+    { lot: 'NAR0003', event: 'Error Reported', date: '2024-01-10', status: 'error' },
     
-    // Generate events
-    for (let i = 0; i < eventCount; i++) {
-      const eventDate = new Date(startDateObj);
-      const dayOffset = Math.floor((totalDays / eventTypes.length) * i);
-      eventDate.setDate(startDateObj.getDate() + dayOffset);
-      
-      timelineEvents.push({
-        lot: lot.id,
-        event: eventTypes[i],
-        date: eventDate.toISOString().split('T')[0],
-        status: 'complete'
-      });
-    }
+    { lot: 'NAR0004', event: 'Bulk Receipt', date: '2023-12-25', status: 'complete' },
+    { lot: 'NAR0004', event: 'Assembly Start', date: '2024-01-02', status: 'complete' },
+    { lot: 'NAR0004', event: 'Error Reported', date: '2024-01-05', status: 'error' },
+    { lot: 'NAR0004', event: 'Error Reported', date: '2024-01-06', status: 'error' },
+    { lot: 'NAR0004', event: 'Error Reported', date: '2024-01-07', status: 'error' },
     
-    // Add error events if there are errors
-    if (lot.hasErrors) {
-      for (let i = 0; i < lot.errors; i++) {
-        const errorDate = new Date(startDateObj);
-        const randomDayOffset = Math.floor(Math.random() * totalDays);
-        errorDate.setDate(startDateObj.getDate() + randomDayOffset);
-        
-        timelineEvents.push({
-          lot: lot.id,
-          event: 'Error Reported',
-          date: errorDate.toISOString().split('T')[0],
-          status: 'error'
-        });
-      }
-    }
-  });
-  
-  // Sort events by date
-  timelineEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    { lot: 'NAR0005', event: 'Bulk Receipt', date: '2024-01-05', status: 'complete' },
+    { lot: 'NAR0005', event: 'Assembly Start', date: '2024-01-10', status: 'complete' },
+    { lot: 'NAR0005', event: 'Assembly Finish', date: '2024-01-15', status: 'complete' },
+    { lot: 'NAR0005', event: 'Error Reported', date: '2024-01-12', status: 'error' },
+    
+    { lot: 'NAR0006', event: 'Bulk Receipt', date: '2024-01-10', status: 'complete' },
+    { lot: 'NAR0006', event: 'Assembly Start', date: '2024-01-15', status: 'complete' }
+  ];
   
   // Create predictive insights
-  const predictions: PredictiveInsight[] = [];
-  let insightId = 1;
-  
-  // Add insights for at-risk lots
-  Object.values(lots).filter(lot => lot.status === 'At Risk').forEach(lot => {
-    predictions.push({
-      id: `insight-${insightId++}`,
-      lot: lot.id,
+  const predictions: PredictiveInsight[] = [
+    {
+      id: 'insight-1',
+      lot: 'NAR0003',
       type: 'Quality Risk',
       severity: 'high',
-      description: `Lot ${lot.id} has ${lot.errors} errors and high risk of failing RFT requirements.`,
+      description: 'Lot NAR0003 has 6 errors and high risk of failing RFT requirements.',
       recommendation: 'Conduct quality review meeting and implement corrective actions.'
-    });
-  });
-  
-  // Add insights for long cycle times
-  Object.values(lots).filter(lot => lot.cycleTime > lot.cycleTimeTarget * 1.2).forEach(lot => {
-    predictions.push({
-      id: `insight-${insightId++}`,
-      lot: lot.id,
+    },
+    {
+      id: 'insight-2',
+      lot: 'NAR0003',
       type: 'Cycle Time',
       severity: 'medium',
-      description: `Lot ${lot.id} cycle time (${lot.cycleTime} days) exceeds target by ${Math.round((lot.cycleTime / lot.cycleTimeTarget - 1) * 100)}%.`,
+      description: 'Lot NAR0003 cycle time (25 days) exceeds target by 19%.',
       recommendation: 'Review process bottlenecks and optimize production schedule.'
-    });
-  });
+    },
+    {
+      id: 'insight-3',
+      lot: 'NAR0004',
+      type: 'Error Pattern',
+      severity: 'medium',
+      description: 'Lot NAR0004 shows consistent Documentation Error patterns.',
+      recommendation: 'Implement additional training and process controls for this error type.'
+    },
+    {
+      id: 'insight-4',
+      lot: 'ALL',
+      type: 'Process Improvement',
+      severity: 'low',
+      description: 'Assembly process efficiency can be improved based on recent trend analysis.',
+      recommendation: 'Review staffing levels and equipment calibration schedules.'
+    }
+  ];
   
-  // Add generic insights
-  predictions.push({
-    id: `insight-${insightId++}`,
-    lot: 'ALL',
-    type: 'Process Improvement',
-    severity: 'low',
-    description: 'Assembly process efficiency can be improved based on recent trend analysis.',
-    recommendation: 'Review staffing levels and equipment calibration schedules.'
-  });
-  
-  // Calculate summary metrics
+  // Create summary metrics
   const lotValues = Object.values(lots);
   const inProgressLots = lotValues.filter(lot => lot.status === 'In Progress').length;
   const completedLots = lotValues.filter(lot => lot.status === 'Complete').length;
   const atRiskLots = lotValues.filter(lot => lot.status === 'At Risk').length;
-  const totalCycleTime = lotValues.reduce((sum, lot) => sum + lot.cycleTime, 0);
-  const avgCycleTime = lotValues.length > 0 ? totalCycleTime / lotValues.length : 0;
-  const totalErrors = lotValues.reduce((sum, lot) => sum + lot.errors, 0);
-  const avgErrors = lotValues.length > 0 ? totalErrors / lotValues.length : 0;
-  const rftLots = lotValues.filter(lot => lot.errors === 0).length;
-  const averageRftRate = lotValues.length > 0 ? (rftLots / lotValues.length) * 100 : 0;
   
   return {
     lots,
@@ -309,9 +313,9 @@ function generateMockData(): DashboardData {
     predictions,
     summary: {
       lotCount: lotValues.length,
-      rftRate: averageRftRate,
-      avgCycleTime,
-      avgErrors,
+      rftRate: 90.3,
+      avgCycleTime: 20.5,
+      avgErrors: 2,
       inProgressLots,
       completedLots,
       atRiskLots
