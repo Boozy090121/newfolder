@@ -152,7 +152,7 @@ function getLotId(record: any): string | null {
   if (record.lot) return record.lot;
   
   // For error records, try to extract from work order
-  if (record['wo/lot#']) {
+  if (record['wo/lot#'] && typeof record['wo/lot#'] === 'string') {
     const woMatch = record['wo/lot#'].match(/NAR\d+/);
     if (woMatch) return woMatch[0];
   }
