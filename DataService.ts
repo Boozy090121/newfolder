@@ -70,23 +70,50 @@ export function useDataService() {
     async function loadAndProcessData() {
       try {
         setIsLoading(true);
+        setError(null);
         
         // Load data from dashboard_data.json
-        const response = await fetch('dashboard_data.json');
-        if (!response.ok) {
-          throw new Error(`Failed to load data: ${response.status}`);
+        try {
+          const response = await fetch('dashboard_data.json');
+          if (!response.ok) {
+            throw new Error(`Failed to load data: ${response.status}`);
+          }
+          
+          const rawData = await response.json();
+          console.log('Loaded data successfully');
+          
+          // Process data using lot-based adapter methods
+          const processedData = processRawData(rawData);
+          if (Object.keys(processedData.lots).length === 0) {
+            throw new Error('Failed to process data: No valid lots found');
+          }
+          
+          setData(processedData);
+          
+        } catch (fetchError) {
+          console.error('Fetch or parsing error:', fetchError);
+          throw new Error('Failed to load or parse data file. Check dashboard_data.json format.');
         }
-        
-        const rawData = await response.json();
-        console.log('Loaded data successfully', rawData);
-        
-        // Process data using lot-based adapter methods
-        const processedData = processRawData(rawData);
-        setData(processedData);
         
       } catch (err) {
         console.error('Error loading or processing data:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
+        // Set fallback data
+        setData({
+          lots: {},
+          rftTrend: [],
+          timelineEvents: [],
+          predictions: [],
+          summary: {
+            lotCount: 0,
+            rftRate: 0,
+            avgCycleTime: 0,
+            avgErrors: 0,
+            inProgressLots: 0,
+            completedLots: 0,
+            atRiskLots: 0
+          }
+        });
       } finally {
         setIsLoading(false);
       }
@@ -100,53 +127,85 @@ export function useDataService() {
 
 // Process raw data similar to how lot-based-data-adapter.js does it
 function processRawData(rawData: any): DashboardData {
-  const records = Array.isArray(rawData) ? rawData : rawData.records || [];
-  
-  if (records.length === 0) {
-    throw new Error('No records to process');
-  }
-  
-  // Group records by lot
-  const lotMap: Record<string, any[]> = {};
-  records.forEach(record => {
-    const lotId = getLotId(record);
-    if (lotId) {
-      if (!lotMap[lotId]) {
-        lotMap[lotId] = [];
-      }
-      lotMap[lotId].push(record);
+  try {
+    const records = Array.isArray(rawData) ? rawData : (rawData?.records || []);
+    
+    if (records.length === 0) {
+      throw new Error('No records to process');
     }
-  });
-  
-  // Process each lot to create lot data
-  const lots: Record<string, LotData> = {};
-  Object.entries(lotMap).forEach(([lotId, lotRecords]) => {
-    lots[lotId] = processLotRecords(lotId, lotRecords);
-  });
-  
-  // Calculate RFT trend (last 90 days)
-  const rftTrend = calculateRftTrend(records);
-  
-  // Extract timeline events
-  const timelineEvents = extractTimelineEvents(records);
-  
-  // Generate predictive insights
-  const predictions = generatePredictiveInsights(lots);
-  
-  // Calculate summary metrics
-  const summary = calculateSummaryMetrics(lots);
-  
-  return {
-    lots,
-    rftTrend,
-    timelineEvents,
-    predictions,
-    summary
-  };
+    
+    // Group records by lot
+    const lotMap: Record<string, any[]> = {};
+    records.forEach((record: any) => {
+      if (!record || typeof record !== 'object') return;
+      
+      try {
+        const lotId = getLotId(record);
+        if (lotId) {
+          if (!lotMap[lotId]) {
+            lotMap[lotId] = [];
+          }
+          lotMap[lotId].push(record);
+        }
+      } catch (error) {
+        console.warn('Error processing record:', error);
+      }
+    });
+    
+    // Process each lot to create lot data
+    const lots: Record<string, LotData> = {};
+    Object.entries(lotMap).forEach(([lotId, lotRecords]) => {
+      try {
+        lots[lotId] = processLotRecords(lotId, lotRecords);
+      } catch (error) {
+        console.warn(`Error processing lot ${lotId}:`, error);
+      }
+    });
+    
+    // Calculate RFT trend (last 90 days)
+    const rftTrend = calculateRftTrend(records);
+    
+    // Extract timeline events
+    const timelineEvents = extractTimelineEvents(records);
+    
+    // Generate predictive insights
+    const predictions = generatePredictiveInsights(lots);
+    
+    // Calculate summary metrics
+    const summary = calculateSummaryMetrics(lots);
+    
+    return {
+      lots,
+      rftTrend,
+      timelineEvents,
+      predictions,
+      summary
+    };
+  } catch (error) {
+    console.error('Error in processRawData:', error);
+    // Return empty data structure on error
+    return {
+      lots: {},
+      rftTrend: [],
+      timelineEvents: [],
+      predictions: [],
+      summary: {
+        lotCount: 0,
+        rftRate: 0,
+        avgCycleTime: 0,
+        avgErrors: 0,
+        inProgressLots: 0,
+        completedLots: 0,
+        atRiskLots: 0
+      }
+    };
+  }
 }
 
 // Extract lot ID from a record
 function getLotId(record: any): string | null {
+  if (!record || typeof record !== 'object') return null;
+  
   try {
     // Try common lot ID fields
     if (record.fg_batch) return record.fg_batch;
@@ -154,19 +213,34 @@ function getLotId(record: any): string | null {
     if (record.lot) return record.lot;
     
     // Try work order fields
-    if (record.assembly_wo) return `NAR${record.assembly_wo.toString().padStart(4, '0')}`;
-    if (record.cartoning_wo) return `NAR${record.cartoning_wo.toString().padStart(4, '0')}`;
+    if (record.assembly_wo) {
+      const assemblyWo = String(record.assembly_wo);
+      return `NAR${assemblyWo.padStart(4, '0')}`;
+    }
     
-    // For error records, try to extract from work order
-    if (record['wo/lot#']) {
-      // Convert to string explicitly to avoid match errors
-      const woString = String(record['wo/lot#']);
-      try {
-        const woMatch = woString.match(/NAR\d+/);
-        if (woMatch) return woMatch[0];
-      } catch (e) {
-        console.warn('Error in regex match:', e);
+    if (record.cartoning_wo) {
+      const cartoningWo = String(record.cartoning_wo);
+      return `NAR${cartoningWo.padStart(4, '0')}`;
+    }
+    
+    // Safely access properties with special characters
+    let workOrderNumber = null;
+    
+    // Handle property with slash - try different access methods
+    try {
+      if (record['wo/lot#']) {
+        workOrderNumber = record['wo/lot#'];
+      } else if (record.wo && record.lot) {
+        workOrderNumber = `${record.wo}/${record.lot}`;
       }
+    } catch (e) {
+      // Ignore property access error
+    }
+    
+    if (workOrderNumber) {
+      const woString = String(workOrderNumber);
+      const woMatch = woString.match(/NAR\d+/);
+      if (woMatch) return woMatch[0];
     }
     
     return null;
