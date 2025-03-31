@@ -1,6 +1,6 @@
 {
   "short_name": "Novo Dashboard",
-  "name": "Novo Nordisk Manufacturing Dashboard",
+  "name": "Novo Nordisk Manufacturing Analytics Dashboard",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,6 +10,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#e11a28",
+  "theme_color": "#0055a4",
   "background_color": "#ffffff"
 } 

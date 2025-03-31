@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0055a4" />
     <meta
       name="description"
       content="Novo Nordisk Manufacturing Analytics Dashboard"
@@ -20,19 +20,5 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <script>
-      // Pre-load dashboard_data.json to ensure it's available
-      fetch('./dashboard_data.json')
-        .then(response => {
-          if (!response.ok) {
-            console.error('Failed to preload dashboard data');
-          } else {
-            console.log('Dashboard data preloaded successfully');
-          }
-        })
-        .catch(error => {
-          console.error('Error preloading dashboard data:', error);
-        });
-    </script>
   </body>
 </html> 
