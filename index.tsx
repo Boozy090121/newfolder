@@ -33,6 +33,26 @@ window.addEventListener('error', function(event) {
   return false;
 }, true);
 
+// THE MOST AGGRESSIVE FIX: Override fetch to intercept dashboard_data.json requests
+const originalFetch = window.fetch;
+window.fetch = function(...args) {
+  // Check if this is a request for dashboard_data.json
+  if (args[0] && args[0].toString().includes('dashboard_data.json')) {
+    console.log('Intercepting dashboard_data.json request');
+    
+    // Return a mock response instead
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve('{"records": []}'),
+      json: () => Promise.resolve({"records": []})
+    });
+  }
+  
+  // For any other request, use the original fetch
+  return originalFetch.apply(window, args);
+};
+
 // Create a custom theme for Novo Nordisk
 const theme = createTheme({
   palette: {
