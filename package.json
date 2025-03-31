@@ -8,8 +8,11 @@
     "@mui/icons-material": "^5.15.14",
     "@mui/material": "^5.15.14",
     "@nivo/core": "^0.85.0",
+    "@nivo/heatmap": "^0.85.0",
     "@nivo/line": "^0.85.0",
     "@nivo/sankey": "^0.85.0",
+    "@nivo/bar": "^0.85.0",
+    "@nivo/pie": "^0.85.0",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -27,7 +30,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "prebuild": "node netlify-fix.js",
+    "fix-deps": "node fix-build-issues.js",
+    "prebuild": "node netlify-fix.js && node fix-build-issues.js",
     "start": "react-scripts start",
     "build": "CI=false SKIP_PREFLIGHT_CHECK=true react-scripts build",
     "test": "react-scripts test",
