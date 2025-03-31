@@ -1,3 +1,4 @@
+// @ts-ignore
 import { useState, useEffect } from 'react';
 
 // Define interfaces for the processed data
@@ -146,18 +147,33 @@ function processRawData(rawData: any): DashboardData {
 
 // Extract lot ID from a record
 function getLotId(record: any): string | null {
-  // Try common lot ID fields
-  if (record.fg_batch) return record.fg_batch;
-  if (record.lotNumber) return record.lotNumber;
-  if (record.lot) return record.lot;
-  
-  // For error records, try to extract from work order
-  if (record['wo/lot#'] && typeof record['wo/lot#'] === 'string') {
-    const woMatch = record['wo/lot#'].match(/NAR\d+/);
-    if (woMatch) return woMatch[0];
+  try {
+    // Try common lot ID fields
+    if (record.fg_batch) return record.fg_batch;
+    if (record.lotNumber) return record.lotNumber;
+    if (record.lot) return record.lot;
+    
+    // Try work order fields
+    if (record.assembly_wo) return `NAR${record.assembly_wo.toString().padStart(4, '0')}`;
+    if (record.cartoning_wo) return `NAR${record.cartoning_wo.toString().padStart(4, '0')}`;
+    
+    // For error records, try to extract from work order
+    if (record['wo/lot#']) {
+      // Convert to string explicitly to avoid match errors
+      const woString = String(record['wo/lot#']);
+      try {
+        const woMatch = woString.match(/NAR\d+/);
+        if (woMatch) return woMatch[0];
+      } catch (e) {
+        console.warn('Error in regex match:', e);
+      }
+    }
+    
+    return null;
+  } catch (err) {
+    console.warn('Error in getLotId:', err);
+    return null;
   }
-  
-  return null;
 }
 
 // Process records for a single lot

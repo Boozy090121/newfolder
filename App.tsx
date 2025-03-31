@@ -26,6 +26,23 @@ export default function App() {
         return <Dashboard />;
       case 'lot-analysis':
         return <LotAnalysis />;
+      case 'internal-rft':
+      case 'external-rft':
+      case 'process-metrics':
+      case 'insights':
+        return (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="h5" sx={{ mb: 2 }}>
+              {selectedPage === 'internal-rft' && 'Internal RFT Analysis'}
+              {selectedPage === 'external-rft' && 'External RFT Analysis'}
+              {selectedPage === 'process-metrics' && 'Process Metrics'}
+              {selectedPage === 'insights' && 'Predictive Insights'}
+            </Typography>
+            <Typography>
+              This feature is under development and will be available in the next release.
+            </Typography>
+          </Box>
+        );
       default:
         return <Dashboard />;
     }
