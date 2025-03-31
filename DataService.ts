@@ -75,21 +75,15 @@ export function useDataService() {
         setIsLoading(true);
         
         try {
-          // Try to load from the sanitized JSON file first
-          let response = await fetch('dashboard_data_safe.json');
+          // Load from the sanitized dashboard_data.json (which should be sanitized now)
+          const response = await fetch('dashboard_data.json');
           
-          // If sanitized file doesn't exist, try the original as a fallback
           if (!response.ok) {
-            console.warn('Sanitized JSON not found, trying original file');
-            response = await fetch('dashboard_data.json');
-            
-            if (!response.ok) {
-              throw new Error(`Failed to load data: ${response.status}`);
-            }
+            throw new Error(`Failed to load data: ${response.status}`);
           }
           
           const rawData = await response.json();
-          console.log('Successfully loaded data');
+          console.log('Successfully loaded sanitized data');
           
           // Process the data
           try {
@@ -143,7 +137,7 @@ function processRawData(rawData: any): DashboardData {
         // Extract lot ID using the safe property name
         let lotId = null;
         
-        // Try different possible field names (including sanitized ones)
+        // Try different possible field names (all should be sanitized now)
         if (record.fg_batch) {
           lotId = String(record.fg_batch);
         } else if (record.woLotNumber) { // This is the sanitized version of wo/lot#

@@ -4,6 +4,14 @@ const path = require('path');
 // Input and output file paths
 const inputFile = path.join(__dirname, 'public', 'dashboard_data.json');
 const outputFile = path.join(__dirname, 'public', 'dashboard_data_safe.json');
+const backupFile = path.join(__dirname, 'public', 'dashboard_data_original.json');
+
+console.log('Creating backup of original data...');
+// Create a backup of the original file if it doesn't exist
+if (!fs.existsSync(backupFile)) {
+  fs.copyFileSync(inputFile, backupFile);
+  console.log('Backup created at dashboard_data_original.json');
+}
 
 console.log('Reading dashboard_data.json...');
 // Read the file as a string (don't parse it directly as JSON to avoid errors)
@@ -33,8 +41,9 @@ jsonString = jsonString.replace(/"([^"]*[\\\/\(\)#\*\?\[\]\{\}\%\&\$\@\!\+\=\:\;
 console.log('Writing sanitized JSON to dashboard_data_safe.json...');
 fs.writeFileSync(outputFile, jsonString);
 
-console.log('Done! Now update your DataService.ts to load dashboard_data_safe.json instead.');
+// Copy the sanitized file over the original by default
+console.log('Replacing original with sanitized version...');
+fs.copyFileSync(outputFile, inputFile);
 
-// Optional: Copy the sanitized file over the original
-// Uncomment the line below if you want to replace the original file
-// fs.copyFileSync(outputFile, inputFile); 
+console.log('Done! All dashboard JSON files have been sanitized.');
+console.log('The original data is backed up as dashboard_data_original.json'); 

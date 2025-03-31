@@ -4,55 +4,6 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import App from './App';
 
-// Add global error handler for specific errors
-const originalConsoleError = console.error;
-console.error = function(...args) {
-  // Check if it's the specific error we want to suppress
-  const errorText = args.join(' ');
-  if (errorText.includes('wo/lot#.match') || 
-      errorText.includes("Cannot read properties of undefined (reading 'match')") ||
-      errorText.includes("TypeError: e.wo/lot#.match is not a function")) {
-    // Don't output this error
-    return;
-  }
-  
-  // For any other error, use the original console.error
-  return originalConsoleError.apply(console, args);
-};
-
-// Also add a global error event handler
-window.addEventListener('error', function(event) {
-  if (event.message && 
-     (event.message.includes('wo/lot#.match') || 
-      event.message.includes("TypeError: e.wo/lot#.match is not a function"))) {
-    // Prevent the error from propagating
-    event.preventDefault();
-    event.stopPropagation();
-    return true;
-  }
-  return false;
-}, true);
-
-// THE MOST AGGRESSIVE FIX: Override fetch to intercept dashboard_data.json requests
-const originalFetch = window.fetch;
-window.fetch = function(...args) {
-  // Check if this is a request for dashboard_data.json
-  if (args[0] && args[0].toString().includes('dashboard_data.json')) {
-    console.log('Intercepting dashboard_data.json request');
-    
-    // Return a mock response instead
-    return Promise.resolve({
-      ok: true,
-      status: 200,
-      text: () => Promise.resolve('{"records": []}'),
-      json: () => Promise.resolve({"records": []})
-    });
-  }
-  
-  // For any other request, use the original fetch
-  return originalFetch.apply(window, args);
-};
-
 // Create a custom theme for Novo Nordisk
 const theme = createTheme({
   palette: {
